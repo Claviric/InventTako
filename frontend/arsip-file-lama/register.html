@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Register Account | InvenTako</title>
+<!-- Fonts: Manrope & Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="register.config.js"></script>
+    <link rel="stylesheet" href="register.css">
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+<!-- Top Navigation Suppression: Per instructions, suppress nav for Transactional screens -->
+<main class="flex-grow flex items-center justify-center p-6 sm:p-12">
+<!-- Auth Container -->
+<div class="w-full max-w-[440px] flex flex-col gap-8">
+<!-- Branding Anchor -->
+<div class="text-center">
+<h1 class="font-headline font-extrabold text-3xl tracking-tighter mb-2" style="color: #2E5BFF;">InvenTako</h1>
+</div>
+<!-- Main Register Card -->
+<div class="bg-surface-container-lowest rounded-xl p-8 sm:p-10 transition-all duration-300">
+<header class="mb-8">
+<h2 class="font-headline font-bold text-2xl text-on-surface tracking-tight">Create Account</h2>
+<p class="text-on-surface-variant text-sm mt-1">Enter your details to initialize your account.</p>
+</header>
+<form class="flex flex-col gap-6" onsubmit="return false;">
+<!-- Email Field -->
+<div class="space-y-1.5">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1">
+                            Email
+                        </label>
+<input id="email" required class="w-full bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 rounded-lg p-4 text-sm font-medium transition-all outline-none text-on-surface" placeholder="name@gmail.com" type="email"/>
+</div>
+<!-- Password Field -->
+<div class="space-y-1.5">
+<label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1">
+                            Password
+                        </label>
+<div class="relative">
+<input id="password" required class="w-full bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 rounded-lg p-4 text-sm font-medium transition-all outline-none text-on-surface" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<!-- Action 1: Verification -->
+<div class="pt-2">
+<button class="w-full py-4 rounded-xl font-headline font-bold text-sm tracking-wide transition-transform active:scale-95 shadow-lg shadow-primary/10 text-surface-container-lowest" style="background-color: #2E5BFF;">Register Account</button>
+</div>
+<!-- Secondary Verification Section (Emphasized per prompt) -->
+</form>
+<!-- Footer Links -->
+<div class="mt-10 text-center">
+<p class="text-on-surface-variant text-sm font-medium">
+                        Already have an account? 
+                        <a class="text-primary font-bold ml-1 hover:underline underline-offset-4 decoration-2" href="login.html">Sign In</a>
+</p>
+</div>
+</div>
+<!-- Global Footer Metadata -->
+</div>
+</main>
+<!-- Decoration Element: Precision Line -->
+<div class="fixed top-0 left-0 w-1 h-full bg-primary opacity-20"></div>
+<div class="fixed top-0 right-0 w-1 h-full bg-primary opacity-20"></div>
+<div id="customModal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 sm:p-6 bg-on-background/20 backdrop-blur-sm transition-opacity duration-300">
+    <div class="bg-surface-container-lowest w-full max-w-sm rounded-xl p-8 shadow-[0_8px_32px_rgba(25,28,30,0.08)] border border-outline-variant/20 flex flex-col items-center text-center transform transition-all duration-300 scale-100 opacity-100">
+        <h2 id="modalTitle" class="font-headline text-2xl font-bold text-on-surface mb-3 tracking-tight">Judul Error</h2>
+        <p id="modalMessage" class="font-body text-base text-on-surface-variant mb-8 leading-relaxed">
+            Pesan error akan muncul di sini.
+        </p>
+        <button id="modalButton" onclick="closeModal()" class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold py-3 px-6 rounded-lg shadow-sm hover:shadow-lg hover:scale-[1.02] transition-all focus:outline-none">
+            Try Again
+        </button>
+    </div>
+</div>
+<script src="register.js"></script>
+</body></html>

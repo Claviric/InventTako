@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riwayat Transaksi | InvenTako</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="riwayat-transaksi.css">
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col text-slate-800">
+
+    <header class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white shadow-sm">
+        <div class="text-3xl font-extrabold text-[#0044ff] tracking-tight">InvenTako</div>
+        <div class="flex items-center gap-2 text-[#0044ff] cursor-pointer hover:text-blue-800 transition-colors" onclick="confirmLogout()" title="Logout">
+            <i data-lucide="log-out" class="w-6 h-6"></i>
+            <span class="text-base font-semibold uppercase">Logout</span>
+        </div>
+    </header>
+
+<div class="flex flex-1 overflow-hidden pt-20">
+        
+        <aside class="fixed top-20 left-0 bottom-0 w-56 border-r border-slate-200 py-6 flex flex-col gap-1 bg-white z-40">
+            <a href="dashboard.html" class="flex items-center gap-3 px-6 py-3 text-black hover:bg-slate-50 transition-colors">
+                <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                <span class="font-medium">Dashboard</span>
+            </a>
+            <a href="barang.html" class="flex items-center gap-3 px-6 py-3 text-black hover:bg-slate-50 transition-colors">
+                <i data-lucide="book-marked" class="w-5 h-5"></i>
+                <span class="font-medium">Barang</span>
+            </a>
+            <a href="transaksi.html" class="flex items-center gap-3 px-6 py-3 text-black hover:bg-slate-50 transition-colors">
+                <i data-lucide="banknote" class="w-5 h-5"></i>
+                <span class="font-medium">Transaksi</span>
+            </a>
+            <a href="riwayat-transaksi.html" class="flex items-center gap-3 px-6 py-3 bg-[#0044ff] text-white">
+                <i data-lucide="history" class="w-5 h-5"></i>
+                <span class="font-medium">Riwayat Transaksi</span>
+            </a>
+            <a href="profil.html" class="flex items-center gap-3 px-6 py-3 text-black hover:bg-slate-50 transition-colors">
+                <i data-lucide="user" class="w-5 h-5"></i>
+                <span class="font-medium">Profil</span>
+            </a>
+        </aside>
+
+        <main class="flex-1 p-8 overflow-y-auto ml-56">
+            
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h1 class="text-2xl font-bold text-black">Riwayat Transaksi</h1>
+                </div>
+                <button onclick="window.location.href='transaksi.html'" class="bg-[#0044ff] hover:bg-blue-700 text-white px-5 py-2.5 rounded-md font-medium transition-colors shadow-sm flex items-center gap-2">
+                    <i data-lucide="monitor" class="w-4 h-4"></i> Buka Layar Kasir
+                </button>
+            </div>
+
+            <div class="flex gap-6 mb-8 w-1/2">
+                <div class="flex-1 p-5 border border-slate-200 rounded-lg shadow-sm bg-white flex flex-col justify-between">
+                    <div class="flex items-center gap-2 text-slate-500 mb-2">
+                        <i data-lucide="wallet" class="w-4 h-4"></i>
+                        <p class="font-bold text-sm">Total Pendapatan</p>
+                    </div>
+                    <p id="totalRevenue" class="text-2xl font-bold text-black mt-1">Rp 0</p>
+                </div>
+                <div class="flex-1 p-5 border border-slate-200 rounded-lg shadow-sm bg-white flex flex-col justify-between">
+                    <div class="flex items-center gap-2 text-slate-500 mb-2">
+                        <i data-lucide="receipt" class="w-4 h-4"></i>
+                        <p class="font-bold text-sm">Total Transaksi</p>
+                    </div>
+                    <p id="totalTransactions" class="text-2xl font-bold text-black mt-1">0 <span class="text-sm font-medium text-slate-500">transaksi</span></p>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-t-lg border border-slate-200 border-b-0 flex gap-4 items-center shadow-sm">
+                <div class="relative flex-1 max-w-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="search" class="h-4 w-4 text-slate-400"></i>
+                    </div>
+                    <input id="searchInput" type="text" class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-md bg-slate-50 text-sm focus:outline-none focus:ring-1 focus:ring-[#0044ff] focus:border-[#0044ff]" placeholder="Cari No. Nota...">
+                </div>
+                <div class="relative max-w-xs">
+                    <input id="dateFilter" type="date" class="block w-full px-3 py-2 border border-slate-200 rounded-md bg-slate-50 text-sm focus:outline-none focus:ring-1 focus:ring-[#0044ff] text-slate-600">
+                </div>
+            </div>
+
+            <div class="border border-slate-200 rounded-b-lg bg-white shadow-sm overflow-hidden mb-6">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 border-b border-slate-200">
+                            <th class="py-3 px-4 font-semibold text-slate-700 text-sm">No. Nota</th>
+                            <th class="py-3 px-4 font-semibold text-slate-700 text-sm">Tanggal & Waktu</th>
+                            <th class="py-3 px-4 font-semibold text-slate-700 text-sm">Total Belanja</th>
+                            <th class="py-3 px-4 font-semibold text-slate-700 text-sm text-center">Status</th>
+                            <th class="py-3 px-4 font-semibold text-slate-700 text-sm text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <tr>
+                            <td colspan="5" class="text-center py-10 text-slate-500">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="paginationControls" class="flex justify-between items-center hidden mb-8">
+                <span id="pageInfo" class="text-sm font-medium text-slate-500">Menampilkan 0-0 dari 0 transaksi</span>
+                <div class="flex gap-2">
+                    <button id="btnPrev" onclick="changePage(-1)" class="px-3 py-1.5 border border-slate-300 rounded text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        &lt;
+                    </button>
+                    <button id="btnNext" onclick="changePage(1)" class="px-3 py-1.5 border border-slate-300 rounded text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        &gt;
+                    </button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="receiptModal" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+        <div class="w-full max-w-md bg-slate-100 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-white z-10">
+                <h2 class="text-lg font-bold text-slate-900">Detail Struk Transaksi</h2>
+                <button onclick="document.getElementById('receiptModal').classList.add('hidden'); document.getElementById('receiptModal').classList.remove('flex');" class="text-slate-400 hover:text-red-500 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex justify-center">
+                <div id="receiptArea" class="bg-white p-5 shadow-sm border border-slate-200 relative" style="width: 320px; color: black; font-family: 'Inter', sans-serif;">
+                    
+                    <div class="text-center mb-4 border-b border-dashed border-slate-300 pb-4">
+                        <h2 id="strukNamaToko" class="font-extrabold text-lg text-black uppercase">TOKO ...</h2>
+                    </div>
+
+                    <div class="flex justify-between text-xs mb-1 text-black">
+                        <span>No. Transaksi</span>
+                        <span id="strukNoNota" class="font-bold"></span>
+                    </div>
+                    <div class="flex justify-between text-xs mb-4 border-b border-slate-300 pb-4 text-black">
+                        <span>Tanggal</span>
+                        <span id="strukTanggal" class="font-bold"></span>
+                    </div>
+
+                    <div id="strukItems" class="border-b border-slate-300 pb-4 mb-4 text-xs flex flex-col gap-3 text-black">
+                        </div>
+
+                    <div class="flex justify-between items-center mb-3 text-black">
+                        <span class="font-bold text-sm">TOTAL</span>
+                        <span id="strukTotal" class="font-bold text-base"></span>
+                    </div>
+
+                    <div class="flex justify-between text-xs mb-1 text-black">
+                        <span>Metode Pembayaran</span>
+                        <span class="font-bold">CASH</span>
+                    </div>
+                    <div class="flex justify-between text-xs mb-1 text-black">
+                        <span>Bayar</span>
+                        <span id="strukBayar"></span>
+                    </div>
+                    <div class="flex justify-between text-xs mb-4 border-b border-slate-300 pb-4 text-black">
+                        <span>Kembalian</span>
+                        <span id="strukKembalian"></span>
+                    </div>
+
+                    <div class="text-center text-[10px] text-slate-500 mt-2">
+                        <p>Terima kasih atas kunjungan Anda</p>
+                        <p>Barang yang dibeli tidak dapat dikembalikan</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="flex gap-3 p-4 bg-white border-t border-slate-200 z-10">
+                <button id="btnDownloadStruk" class="flex-1 bg-[#0044ff] text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                    Download PDF
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="toastNotification" class="fixed bottom-6 right-6 translate-x-[150%] transition-transform duration-300 z-[60]">
+        <div id="toastContent" class="bg-white border-l-4 shadow-xl rounded-md p-4 flex items-start gap-3 w-80">
+            <div id="toastIconContainer" class="mt-0.5"><i id="toastIcon" data-lucide="check-circle" class="w-6 h-6"></i></div>
+            <div><p id="toastTitle" class="font-semibold text-slate-900"></p><p id="toastMessage" class="text-sm text-slate-600"></p></div>
+        </div>
+    </div>
+
+    <script src="riwayat-transaksi.js"></script>
+
+    <div id="logoutConfirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <i data-lucide="log-out" class="w-6 h-6 text-red-600"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900">Logout?</h2>
+            </div>
+            <p class="text-slate-600 mb-6">Apakah Anda yakin ingin keluar dari aplikasi?</p>
+            <div class="flex gap-3">
+                <button onclick="cancelLogout()" class="flex-1 px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-900 font-semibold rounded-lg transition-colors">
+                    Batal
+                </button>
+                <button onclick="handleLogout()" class="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
