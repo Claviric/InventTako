@@ -12,9 +12,17 @@ exports.getItems = async (req, res) => {
 
 exports.createItem = async (req, res) => {
     const { kode, nama, kategori, harga, stok, deskripsi } = req.body;
+    const hargaNumber = Number(harga);
+    const stokNumber = Number(stok);
     
-    if (!kode || !nama || !kategori || !harga || !stok) {
+    if (!kode || !nama || !kategori || harga === undefined || stok === undefined) {
         return res.status(400).json({ message: 'Semua kolom wajib diisi!' });
+    }
+    if (!Number.isFinite(hargaNumber) || hargaNumber <= 0) {
+        return res.status(400).json({ message: 'Harga harus lebih dari 0!' });
+    }
+    if (!Number.isInteger(stokNumber) || stokNumber < 0) {
+        return res.status(400).json({ message: 'Stok tidak boleh negatif!' });
     }
 
     try {
@@ -26,7 +34,7 @@ exports.createItem = async (req, res) => {
 
         await db.query(
             'INSERT INTO items (kode, nama, kategori, harga, stok, deskripsi, idUser) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [kode, nama, kategori, harga, stok, deskripsi || '', req.userId]
+            [kode, nama, kategori, hargaNumber, stokNumber, deskripsi || '', req.userId]
         );
         res.status(201).json({ message: 'Barang berhasil ditambahkan!' });
     } catch (error) {
@@ -48,9 +56,17 @@ exports.getItemById = async (req, res) => {
 
 exports.updateItem = async (req, res) => {
     const { kode, nama, kategori, harga, stok, deskripsi } = req.body;
+    const hargaNumber = Number(harga);
+    const stokNumber = Number(stok);
     
-    if (!kode || !nama || !kategori || !harga || !stok) {
+    if (!kode || !nama || !kategori || harga === undefined || stok === undefined) {
         return res.status(400).json({ message: 'Semua kolom wajib diisi!' });
+    }
+    if (!Number.isFinite(hargaNumber) || hargaNumber <= 0) {
+        return res.status(400).json({ message: 'Harga harus lebih dari 0!' });
+    }
+    if (!Number.isInteger(stokNumber) || stokNumber < 0) {
+        return res.status(400).json({ message: 'Stok tidak boleh negatif!' });
     }
 
     try {
@@ -59,7 +75,7 @@ exports.updateItem = async (req, res) => {
 
         const [result] = await db.query(
             'UPDATE items SET kode = ?, nama = ?, kategori = ?, harga = ?, stok = ?, deskripsi = ? WHERE id = ? AND idUser = ?',
-            [kode, nama, kategori, harga, stok, deskripsi || '', req.params.id, req.userId]
+            [kode, nama, kategori, hargaNumber, stokNumber, deskripsi || '', req.params.id, req.userId]
         );
         
         if (result.affectedRows === 0) return res.status(404).json({ message: 'Barang tidak ditemukan.' });

@@ -220,18 +220,34 @@ function showToast(title, message, success = true) {
     const content = qs('toastContent');
     content.classList.remove('border-green-500', 'border-red-500');
     content.classList.add(success ? 'border-green-500' : 'border-red-500');
+    const icon = qs('toastIcon');
+    const iconContainer = qs('toastIconContainer');
+    if (icon) icon.setAttribute('data-lucide', success ? 'check-circle' : 'x-circle');
+    if (iconContainer) {
+        iconContainer.classList.remove('text-green-600', 'text-red-600');
+        iconContainer.classList.add(success ? 'text-green-600' : 'text-red-600');
+    }
     wrap.classList.remove('translate-x-[150%]');
     setTimeout(() => wrap.classList.add('translate-x-[150%]'), 2500);
     refreshIcons();
 }
 function collectItemForm() {
-    return { nama: qs('nama').value, kode: qs('kode').value, kategori: qs('kategori').value, harga: qs('harga').value, stok: qs('stok').value, deskripsi: qs('deskripsi').value };
+    return { nama: qs('nama').value.trim(), kode: qs('kode').value.trim(), kategori: qs('kategori').value.trim(), harga: Number(qs('harga').value), stok: Number(qs('stok').value), deskripsi: qs('deskripsi').value.trim() };
+}
+function validateItemForm(data) {
+    if (!data.nama || !data.kode || !data.kategori) return 'Semua kolom wajib diisi!';
+    if (!Number.isFinite(data.harga) || data.harga <= 0) return 'Harga harus lebih dari 0.';
+    if (!Number.isInteger(data.stok) || data.stok < 0) return 'Stok tidak boleh negatif.';
+    return '';
 }
 function initTambahBarang() {
     qs('formTambahBarang')?.addEventListener('submit', async (event) => {
         event.preventDefault();
+        const payload = collectItemForm();
+        const validation = validateItemForm(payload);
+        if (validation) return showToast('Gagal', validation, false);
         try {
-            const result = await api('/items', { method: 'POST', body: JSON.stringify(collectItemForm()) });
+            const result = await api('/items', { method: 'POST', body: JSON.stringify(payload) });
             showToast('Berhasil', result.message || 'Barang ditambahkan.');
             setTimeout(() => navigate('barang'), 800);
         } catch (error) {
@@ -252,8 +268,11 @@ async function initEditBarang() {
     }
     qs('formEditBarang')?.addEventListener('submit', async (event) => {
         event.preventDefault();
+        const payload = collectItemForm();
+        const validation = validateItemForm(payload);
+        if (validation) return showToast('Gagal', validation, false);
         try {
-            const result = await api('/items/' + id, { method: 'PUT', body: JSON.stringify(collectItemForm()) });
+            const result = await api('/items/' + id, { method: 'PUT', body: JSON.stringify(payload) });
             showToast('Berhasil', result.message || 'Barang diperbarui.');
             setTimeout(() => navigate('barang'), 800);
         } catch (error) {
@@ -268,14 +287,19 @@ function initTransaksi() {
     qs('inputUang')?.addEventListener('input', renderCart);
     qs('btnBatal')?.addEventListener('click', () => { state.cart = []; renderCart(); });
     qs('btnSimpan')?.addEventListener('click', confirmSimpanTransaksi);
+    qs('btnDownloadStruk')?.addEventListener('click', downloadReceiptPDF);
     qs('btnTutupStruk')?.addEventListener('click', () => { const modal = qs('receiptModal'); modal.classList.add('hidden'); modal.classList.remove('flex'); navigate('riwayat'); });
 }
 function addCartByCode() {
     const code = qs('inputKode').value.trim();
     const item = state.items.find((row) => row.kode === code);
     if (!item) return showToast('Tidak Ditemukan', `Kode ${code} tidak ada di database!`, false);
+    if (Number(item.stok) <= 0) return showToast('Stok Habis', `${item.nama} sedang tidak tersedia.`, false);
     const existing = state.cart.find((row) => row.id === item.id);
-    if (existing) existing.qty += 1;
+    if (existing) {
+        if (existing.qty >= Number(existing.stok)) return showToast('Stok Tidak Cukup', `Stok ${existing.nama} hanya ${existing.stok}.`, false);
+        existing.qty += 1;
+    }
     else state.cart.push({ ...item, qty: 1 });
     qs('inputKode').value = '';
     renderCart();
@@ -288,12 +312,22 @@ function renderCart() {
     qs('jumlahItem').textContent = jumlah;
     qs('totalBelanjaSummary').textContent = rupiah(total);
     const uang = Number(qs('inputUang')?.value || 0);
-    qs('kembalian').textContent = rupiah(Math.max(0, uang - total));
-    body.innerHTML = state.cart.length ? state.cart.map((item, index) => `<tr class="border-b border-slate-100"><td class="py-3 px-4"><div class="font-bold text-black">${item.nama}</div><div class="text-xs text-slate-500">${item.kode}</div></td><td class="py-3 px-4">${rupiah(item.harga)}</td><td class="py-3 px-4 text-center"><input type="number" min="1" value="${item.qty}" onchange="updateQty(${index}, this.value)" class="w-16 text-center border rounded p-1"></td><td class="py-3 px-4">${rupiah(Number(item.harga) * item.qty)}</td><td class="py-3 px-4 text-center"><button onclick="hapusDariKeranjang(${index})" class="text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4 mx-auto"></i></button></td></tr>`).join('') : '<tr><td colspan="5" class="text-center py-10 text-slate-500">Keranjang masih kosong. Masukkan kode barang.</td></tr>';
+    const kurang = Math.max(0, total - uang);
+    qs('kembalian').textContent = kurang > 0 ? `Uang kurang ${rupiah(kurang)}` : rupiah(uang - total);
+    qs('kembalian').classList.toggle('text-red-600', kurang > 0);
+    qs('kembalian').classList.toggle('text-[#0044ff]', kurang === 0);
+    body.innerHTML = state.cart.length ? state.cart.map((item, index) => {
+        const maxed = item.qty >= Number(item.stok);
+        return `<tr class="border-b border-slate-100"><td class="py-3 px-4"><div class="font-bold text-black">${item.nama}</div><div class="text-xs text-slate-500">${item.kode} • Stok ${item.stok}</div></td><td class="py-3 px-4">${rupiah(item.harga)}</td><td class="py-3 px-4 text-center"><div class="inline-flex items-center border border-slate-200 rounded-md overflow-hidden"><button type="button" onclick="updateQty(${index}, ${item.qty - 1})" ${item.qty <= 1 ? 'disabled' : ''} class="w-8 h-8 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100">-</button><span class="w-10 text-center text-sm font-semibold">${item.qty}</span><button type="button" onclick="updateQty(${index}, ${item.qty + 1})" ${maxed ? 'disabled' : ''} class="w-8 h-8 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100">+</button></div></td><td class="py-3 px-4">${rupiah(Number(item.harga) * item.qty)}</td><td class="py-3 px-4 text-center"><button onclick="hapusDariKeranjang(${index})" class="text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4 mx-auto"></i></button></td></tr>`;
+    }).join('') : '<tr><td colspan="5" class="text-center py-10 text-slate-500">Keranjang masih kosong. Masukkan kode barang.</td></tr>';
     refreshIcons();
 }
 function updateQty(index, value) {
-    state.cart[index].qty = Math.max(1, Number(value));
+    const item = state.cart[index];
+    if (!item) return;
+    const nextQty = Math.max(1, Math.min(Number(item.stok), Number(value) || 1));
+    if (Number(value) > Number(item.stok)) showToast('Stok Tidak Cukup', `Stok ${item.nama} hanya ${item.stok}.`, false);
+    item.qty = nextQty;
     renderCart();
 }
 function hapusDariKeranjang(index) {
@@ -315,6 +349,8 @@ function cancelSimpanTransaksi() {
 async function submitTransaksi() {
     cancelSimpanTransaksi();
     if (!state.cart.length) return showToast('Keranjang Kosong', 'Tambahkan barang dulu.', false);
+    const stokKurang = state.cart.find((item) => item.qty > Number(item.stok));
+    if (stokKurang) return showToast('Stok Tidak Cukup', `Stok ${stokKurang.nama} hanya ${stokKurang.stok}.`, false);
     const totalBelanja = state.cart.reduce((sum, item) => sum + Number(item.harga) * item.qty, 0);
     const uangTunai = Number(qs('inputUang').value || 0);
     if (uangTunai < totalBelanja) return showToast('Uang Kurang', 'Uang tunai tidak mencukupi.', false);
@@ -340,7 +376,24 @@ function fillReceipt(transaction, details) {
     qs('strukTotal').textContent = rupiah(transaction.total_belanja);
     qs('strukBayar').textContent = rupiah(transaction.uang_tunai || transaction.total_belanja);
     qs('strukKembalian').textContent = rupiah(transaction.kembalian || 0);
+    qs('btnDownloadStruk')?.addEventListener('click', downloadReceiptPDF);
     refreshIcons();
+}
+async function downloadReceiptPDF() {
+    const receipt = qs('receiptArea');
+    if (!receipt || !window.html2canvas || !window.jspdf?.jsPDF) return showToast('Gagal', 'Library PDF belum siap. Coba muat ulang halaman.', false);
+    try {
+        const canvas = await html2canvas(receipt, { scale: 2, backgroundColor: '#ffffff' });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const imgWidth = 80;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        pdf.addImage(imgData, 'PNG', (pageWidth - imgWidth) / 2, 12, imgWidth, imgHeight);
+        pdf.save(`struk-${qs('strukNoNota')?.textContent || Date.now()}.pdf`);
+    } catch (error) {
+        showToast('Gagal', 'Struk gagal diunduh sebagai PDF.', false);
+    }
 }
 function initRiwayat() {
     const draw = () => {

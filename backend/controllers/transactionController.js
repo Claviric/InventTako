@@ -6,36 +6,72 @@ exports.createTransaction = async (req, res) => {
     if (!cart || cart.length === 0) {
         return res.status(400).json({ message: 'Keranjang belanja kosong!' });
     }
+    const normalizedCart = cart.map((item) => ({
+        ...item,
+        qty: Number(item.qty),
+        harga: Number(item.harga),
+        subtotal: Number(item.subtotal)
+    }));
+    if (normalizedCart.some((item) => !Number.isInteger(item.qty) || item.qty < 1 || !Number.isFinite(item.harga) || item.harga <= 0)) {
+        return res.status(400).json({ message: 'Data barang transaksi tidak valid!' });
+    }
+    const calculatedTotal = normalizedCart.reduce((sum, item) => sum + item.harga * item.qty, 0);
+    if (Number(uangTunai) < calculatedTotal) {
+        return res.status(400).json({ message: 'Uang tunai tidak mencukupi.' });
+    }
 
     // Buat nomor nota otomatis (Format: TRX-Timestamp)
     const noNota = `TRX-${Date.now()}`;
-    const totalItem = cart.reduce((sum, item) => sum + item.qty, 0);
+    const totalItem = normalizedCart.reduce((sum, item) => sum + item.qty, 0);
 
     const connection = await db.getConnection();
     
     try {
         await connection.beginTransaction();
 
+        for (let item of normalizedCart) {
+            const [stockRows] = await connection.query(
+                'SELECT nama, stok FROM items WHERE id = ? AND idUser = ? FOR UPDATE',
+                [item.id, req.userId]
+            );
+            if (stockRows.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({ message: `Barang ${item.nama || item.id} tidak ditemukan.` });
+            }
+            if (Number(stockRows[0].stok) < item.qty) {
+                await connection.rollback();
+                return res.status(400).json({ message: `Stok ${stockRows[0].nama} tidak cukup. Sisa stok ${stockRows[0].stok}.` });
+            }
+        }
+
         //Simpan ke tabel transactions
         const [transResult] = await connection.query(
             'INSERT INTO transactions (no_nota, total_item, total_belanja, uang_tunai, kembalian, idUser) VALUES (?, ?, ?, ?, ?, ?)',
-            [noNota, totalItem, totalBelanja, uangTunai, kembalian, req.userId]
+            [noNota, totalItem, calculatedTotal, Number(uangTunai), Number(uangTunai) - calculatedTotal, req.userId]
         );
         const idTransaksi = transResult.insertId;
 
         //Simpan detail barang & kurangi stok
-        for (let item of cart) {
+        for (let item of normalizedCart) {
             // Simpan detail
             await connection.query(
                 'INSERT INTO transaction_details (id_transaksi, id_barang, kode_barang, nama_barang, qty, harga_satuan, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [idTransaksi, item.id, item.kode, item.nama, item.qty, item.harga, item.subtotal]
+                [idTransaksi, item.id, item.kode, item.nama, item.qty, item.harga, item.harga * item.qty]
             );
 
             // Kurangi stok di tabel items
             await connection.query(
-                'UPDATE items SET stok = stok - ? WHERE id = ? AND idUser = ?',
-                [item.qty, item.id, req.userId]
+                'UPDATE items SET stok = stok - ? WHERE id = ? AND idUser = ? AND stok >= ?',
+                [item.qty, item.id, req.userId, item.qty]
             );
+        }
+
+        const [negativeRows] = await connection.query(
+            'SELECT COUNT(*) AS total FROM items WHERE idUser = ? AND stok < 0',
+            [req.userId]
+        );
+        if (negativeRows[0].total > 0) {
+            throw new Error('Stok tidak valid.');
         }
 
         await connection.commit();
