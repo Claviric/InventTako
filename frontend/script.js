@@ -313,9 +313,12 @@ function renderCart() {
     qs('totalBelanjaSummary').textContent = rupiah(total);
     const uang = Number(qs('inputUang')?.value || 0);
     const kurang = Math.max(0, total - uang);
-    qs('kembalian').textContent = kurang > 0 ? `Uang kurang ${rupiah(kurang)}` : rupiah(uang - total);
-    qs('kembalian').classList.toggle('text-red-600', kurang > 0);
-    qs('kembalian').classList.toggle('text-[#0044ff]', kurang === 0);
+    const kembalianEl = qs('kembalian');
+    kembalianEl.classList.remove('text-2xl', 'text-xl', 'text-[#0044ff]', 'text-red-600');
+    kembalianEl.classList.add('text-right', 'leading-tight');
+    kembalianEl.innerHTML = kurang > 0
+        ? `<span class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-red-600">Uang kurang</span><span class="mt-1 block text-lg font-extrabold text-red-600">${rupiah(kurang)}</span>`
+        : `<span class="block text-lg font-extrabold text-[#0044ff]">${rupiah(uang - total)}</span>`;
     body.innerHTML = state.cart.length ? state.cart.map((item, index) => {
         const maxed = item.qty >= Number(item.stok);
         return `<tr class="border-b border-slate-100"><td class="py-3 px-4"><div class="font-bold text-black">${item.nama}</div><div class="text-xs text-slate-500">${item.kode} • Stok ${item.stok}</div></td><td class="py-3 px-4">${rupiah(item.harga)}</td><td class="py-3 px-4 text-center"><div class="inline-flex items-center border border-slate-200 rounded-md overflow-hidden"><button type="button" onclick="updateQty(${index}, ${item.qty - 1})" ${item.qty <= 1 ? 'disabled' : ''} class="w-8 h-8 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100">-</button><span class="w-10 text-center text-sm font-semibold">${item.qty}</span><button type="button" onclick="updateQty(${index}, ${item.qty + 1})" ${maxed ? 'disabled' : ''} class="w-8 h-8 font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100">+</button></div></td><td class="py-3 px-4">${rupiah(Number(item.harga) * item.qty)}</td><td class="py-3 px-4 text-center"><button onclick="hapusDariKeranjang(${index})" class="text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4 mx-auto"></i></button></td></tr>`;
